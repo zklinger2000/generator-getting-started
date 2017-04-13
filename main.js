@@ -21,135 +21,145 @@
  * 
  */
 
- // Tutorial script by Tom Krcha (Twitter: @tomkrcha)
-
 (function () {
-    "use strict";
+  "use strict";
 
-    var PLUGIN_ID = require("./package.json").name,
-        MENU_ID = "tutorial",
-        MENU_LABEL = "$$$/JavaScripts/Generator/Tutorial/Menu=Tutorial";
-    
-    var _generator = null,
-        _currentDocumentId = null,
-        _config = null;
+  var fs = require('fs');
 
-    /*********** INIT ***********/
+  var PLUGIN_ID = require("./package.json").name,
+    MENU_ID = "imageCard",
+    MENU_LABEL = "$$$/JavaScripts/Generator/imageCard/Menu=imageCard";
 
-    function init(generator, config) {
-        _generator = generator;
-        _config = config;
+  var _generator = null,
+    _currentDocumentId = null,
+    _config = null;
 
-        console.log("initializing generator getting started tutorial with config %j", _config);
-        
-        _generator.addMenuItem(MENU_ID, MENU_LABEL, true, false).then(
-            function () {
-                console.log("Menu created", MENU_ID);
-            }, function () {
-                console.error("Menu creation failed", MENU_ID);
-            }
-        );
-        _generator.onPhotoshopEvent("generatorMenuChanged", handleGeneratorMenuClicked);
+  /*********** INIT ***********/
 
-        function initLater() {
-            // Flip foreground color
-            var flipColorsExtendScript = "var color = app.foregroundColor; color.rgb.red = 255 - color.rgb.red; color.rgb.green = 255 - color.rgb.green; color.rgb.blue = 255 - color.rgb.blue; app.foregroundColor = color;";
-            sendJavascript(flipColorsExtendScript);
+  function init(generator, config) {
+    _generator = generator;
+    _config = config;
 
-            _generator.onPhotoshopEvent("currentDocumentChanged", handleCurrentDocumentChanged);
-            _generator.onPhotoshopEvent("imageChanged", handleImageChanged);
-            _generator.onPhotoshopEvent("toolChanged", handleToolChanged);
-            requestEntireDocument();
-            
-        }
-        
-        process.nextTick(initLater);
+    console.log("initializing generator imageCard with config %j", _config);
 
+    _generator.addMenuItem(MENU_ID, MENU_LABEL, true, false).then(
+      function () {
+        console.log("Menu created", MENU_ID);
+      }, function () {
+        console.error("Menu creation failed", MENU_ID);
+      }
+    );
+    _generator.onPhotoshopEvent("generatorMenuChanged", handleGeneratorMenuClicked);
 
+    function initLater() {
+      // Flip foreground color
+      var flipColorsExtendScript = "var color = app.foregroundColor; color.rgb.red = 255 - color.rgb.red; color.rgb.green = 255 - color.rgb.green; color.rgb.blue = 255 - color.rgb.blue; app.foregroundColor = color;";
+      sendJavascript(flipColorsExtendScript);
+
+      _generator.onPhotoshopEvent("currentDocumentChanged", handleCurrentDocumentChanged);
+      _generator.onPhotoshopEvent("imageChanged", handleImageChanged);
+      _generator.onPhotoshopEvent("toolChanged", handleToolChanged);
+      requestEntireDocument();
 
     }
 
-    /*********** EVENTS ***********/
+    process.nextTick(initLater);
 
-    function handleCurrentDocumentChanged(id) {
-        console.log("handleCurrentDocumentChanged: "+id)
-        setCurrentDocumentId(id);
+
+  }
+
+  /*********** EVENTS ***********/
+
+  function handleCurrentDocumentChanged(id) {
+    console.log("handleCurrentDocumentChanged: " + id)
+    setCurrentDocumentId(id);
+  }
+
+  function handleImageChanged(document) {
+    console.log("Image " + document.id + " was changed:");//, stringify(document));
+  }
+
+  function handleToolChanged(document) {
+    console.log("Tool changed " + document.id + " was changed:");//, stringify(document));
+  }
+
+  function handleGeneratorMenuClicked(event) {
+    console.log('handleGeneratorMenuClicked');
+    // Ignore changes to other menus
+    var menu = event.generatorMenuChanged;
+    if (!menu || menu.name !== MENU_ID) {
+      return;
     }
 
-    function handleImageChanged(document) {
-        console.log("Image " + document.id + " was changed:");//, stringify(document));
+    var startingMenuState = _generator.getMenuState(menu.name);
+    console.log("Menu event %s, starting state %s", stringify(event), stringify(startingMenuState));
+  }
+
+  /*********** CALLS ***********/
+
+  function requestEntireDocument(documentId) {
+    console.log('requestEntireDocument CALLED');
+    if (!documentId) {
+      console.log("Determining the current document ID");
     }
 
-    function handleToolChanged(document){
-        console.log("Tool changed " + document.id + " was changed:");//, stringify(document));
+    _generator.getDocumentInfo(documentId).then(
+      function (document) {
+        fs.writeFile("/tmp/test", stringify(document), function (err) {
+          if (err) {
+            return console.log(err);
+          }
+          console.log("The file was saved!");
+        });
+        console.log("Received complete document:", stringify(document));
+      },
+      function (err) {
+        console.error("[Tutorial] Error in getDocumentInfo:", err);
+      }
+    ).done();
+  }
+
+  function updateMenuState(enabled) {
+    console.log("Setting menu state to", enabled);
+    _generator.toggleMenu(MENU_ID, true, enabled);
+  }
+
+  /*********** HELPERS ***********/
+
+
+  function sendJavascript(str) {
+    console.log('sendJavascript');
+    _generator.evaluateJSXString(str).then(
+      function (result) {
+        console.log(result);
+      },
+      function (err) {
+        console.log(err);
+      });
+  }
+
+  function setCurrentDocumentId(id) {
+    if (_currentDocumentId === id) {
+      return;
     }
+    console.log("Current document ID:", id);
+    _currentDocumentId = id;
+  }
 
-    function handleGeneratorMenuClicked(event) {
-        // Ignore changes to other menus
-        var menu = event.generatorMenuChanged;
-        if (!menu || menu.name !== MENU_ID) {
-            return;
-        }
-
-        var startingMenuState = _generator.getMenuState(menu.name);
-        console.log("Menu event %s, starting state %s", stringify(event), stringify(startingMenuState));
+  function stringify(object) {
+    try {
+      return JSON.stringify(object, null, "    ");
+    } catch (e) {
+      console.error(e);
     }
+    return String(object);
+  }
 
-    /*********** CALLS ***********/
+  exports.init = init;
 
-    function requestEntireDocument(documentId) {
-        if (!documentId) {
-            console.log("Determining the current document ID");
-        }
-        
-        _generator.getDocumentInfo(documentId).then(
-            function (document) {
-                console.log("Received complete document:", stringify(document));
-            },
-            function (err) {
-                console.error("[Tutorial] Error in getDocumentInfo:", err);
-            }
-        ).done();
-    }
+  // Unit test function exports
+  exports._setConfig = function (config) {
+    _config = config;
+  };
 
-    function updateMenuState(enabled) {
-        console.log("Setting menu state to", enabled);
-        _generator.toggleMenu(MENU_ID, true, enabled);
-    }
-
-    /*********** HELPERS ***********/
-
-
-    function sendJavascript(str){
-        _generator.evaluateJSXString(str).then(
-            function(result){
-                console.log(result);
-            },
-            function(err){
-                console.log(err);
-            });
-    }
-
-    function setCurrentDocumentId(id) {
-        if (_currentDocumentId === id) {
-            return;
-        }
-        console.log("Current document ID:", id);
-        _currentDocumentId = id;
-    }
-
-    function stringify(object) {
-        try {
-            return JSON.stringify(object, null, "    ");
-        } catch (e) {
-            console.error(e);
-        }
-        return String(object);
-    }
-
-    exports.init = init;
-
-    // Unit test function exports
-    exports._setConfig = function (config) { _config = config; };
-    
 }());

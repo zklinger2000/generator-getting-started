@@ -1,18 +1,8 @@
-generator-getting-started
-=========================
+generator-imageCard
+===================
 
-Adobe Generator Getting Started Tutorial - Scripting Photoshop with JavaScript via Node.js
-
-Follow the tutorial instructions on my blog: http://tomkrcha.com/?p=3896
-
-Created by Tom Krcha https://twitter.com/tomkrcha
+Outputs a JSON file with all the current image data needed to build initial imageCard list in Maya using [maya-python-imageCard](https://github.com/zklinger2000/maya-python-imageCard) 
 
 ---------
-Built-in Generator log files can be found here:
-
-Mac:
-/Users/[your username]/Library/Logs/Adobe/Adobe Photoshop CC/Generator
-
-Windows:
-C:\Users\[your username]\AppData\Roaming\Adobe\Adobe Photoshop
-CC\Generator\logs
+created by Zack Klinger
+https://zklinger.com
